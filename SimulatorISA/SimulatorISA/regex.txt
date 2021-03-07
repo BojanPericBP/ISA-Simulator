@@ -1,0 +1,43 @@
+^((mov|add|sub|and|or|cmp|je) ([r][1-4]{0,3}|srb|srd|src|#?[0-99]{1,2}),{0,1} ([r][1-4]{0,3}|srb|src|srd|#?[0-99]{1,2}))|not ([r][1-4]{0,3}|srb|srd|src|#?[0-99]{1,2})$
+
+not #45
+not srb
+not srd
+not src
+not r1
+not 2
+
+mov r1, r4
+mov srb, r3
+mov srb, #99
+mov #3, 10
+mov #60, r4
+mov r3, 54
+mov #1, #2
+
+mov r1, r4
+je srb, r3
+cmp srb, #99
+or #3, 10
+and #60, r4
+or r3, 54
+and #1, #2
+
+add r1, r4
+add srb, r3
+add srd, srd
+add srb, #99
+add #3, 10
+add #60, r4
+add r3, 54
+add 4, 5
+add #4, #6
+
+sub r1, r4
+sub srd, r3
+sub srb, #99
+sub #3, 10
+sub #60, r4
+sub r3, 54
+sub 4, 5
+sub #4, #6

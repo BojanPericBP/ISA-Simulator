@@ -1,0 +1,12 @@
+regex koji kupi  -> mov 2, 2
+
+(\*|(((add|sub|and|or|cmp|je) (r[1-4]|srb|srd|src|#?[0-9]|[0-9]{1,17}), (r[1-4]|srb|src|srd|#?[0-9]|[0-9]{1,17}))|not (r[1-4]|srb|srd|src|#?[0-9]|[0-9]{1,17})|mov (r[1-4]|srb|srd|src|#[0-9]|[0-9]{1,17}), (r[1-4]|srb|src|srd|#?[0-9]|[0-9]{1,17})))$
+
+regex koji ne kupi -> mov 2, 2
+
+(\*|(((add|sub|and|or|cmp|je) (r[1-4]|srb|srd|src|#?[0-9]|[0-9]{1,17}), (r[1-4]|srb|src|srd|#?[0-9]|[0-9]{1,17}))|not (r[1-4]|srb|srd|src|#?[0-9]|[0-9]{1,17})|mov (r[1-4]|srb|srd|src|#[0-9]), (r[1-4]|srb|src|srd|#?[0-9]|[0-9]{1,17})))
+
+regex sa negativnim brojevima
+
+(\*|(((add|sub|and|or|cmp|je) (r[1-4]|srb|srd|src|#?[0-9]|-?[0-9]{1,17}), (r[1-4]|srb|src|srd|#?[0-9]|-?[0-9]{1,17}))|not (r[1-4]|srb|srd|src|#?[0-9]|-?[0-9]{1,17})|mov (r[1-4]|srb|srd|src|#[0-9]), (r[1-4]|srb|src|srd|#?[0-9]|-?[0-9]{1,17})))
+

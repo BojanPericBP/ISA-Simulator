@@ -1,0 +1,10 @@
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\bin\Debug\SimulatorISA.exe.config
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\bin\Debug\SimulatorISA.exe
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\bin\Debug\SimulatorISA.pdb
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.csprojAssemblyReference.cache
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.Form1.resources
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.Properties.Resources.resources
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.csproj.GenerateResource.cache
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.csproj.CoreCompileInputs.cache
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.exe
+C:\Users\Bojan\Desktop\SimulatorISA\SimulatorISA\obj\Debug\SimulatorISA.pdb

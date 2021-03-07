@@ -1,0 +1,413 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using System.Text.RegularExpressions;
+using System.IO;
+
+namespace SimulatorISA
+{
+    public partial class Form1 : Form
+    {
+        const int velicinaMemorije = 10;
+        const int brZegistara = 7;
+        bool jmpTo = false;
+        int brLinije = 0;
+        String[] nizRedova;
+        String kod;
+        String jednaInstrukcija;
+
+        Dictionary<string, long> registri = new Dictionary<string, long>();
+        Dictionary<string, long> radnaMemorija = new Dictionary<string, long>();
+
+        Regex reg = new Regex(@"^((\*|(((add|sub|and|or|cmp|je|cmp) (r[1-4]|srb|srd|src|#?[0-9]|-?[0-9]{1,17}), (r[1-4]|srb|src|srd|#?[0-9]|-?[0-9]{1,17}))|not (r[1-4]|srb|srd|src|#?[0-9]|-?[0-9]{1,17})|mov (r[1-4]|srb|srd|src|#[0-9]), (r[1-4]|srb|src|srd|#?[0-9]|-?[0-9]{1,17})))|((je |jge |jl )?labela[1-9][0-9]?:))$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        MatchCollection match;
+
+       /* Regex regDouble = new Regex(@"^((\*|(((add|sub|and|or|cmp|je|cmp) (dr[1-4]#?[0-9]|-?[0-9]{1,17}), (r[1-4]|srb|src|srd|#?[0-9]|-?[0-9]{1,17}))|not (r[1-4]|srb|srd|src|#?[0-9]|-?[0-9]{1,17})|mov (r[1-4]|srb|srd|src|#[0-9]), (r[1-4]|srb|src|srd|#?[0-9]|-?[0-9]{1,17})))|((je |jge |jl )?labela[1-9][0-9]?:))$", RegexOptions.Compiled | RegexOptions.IgnoreCase);*/
+
+        public Form1()
+        {
+            InitializeComponent();
+            registri.Add("r1", 0);
+            registri.Add("r2", 0);
+            registri.Add("r3", 0);
+            registri.Add("r4", 0);
+            registri.Add("srb", 0);
+            registri.Add("srd", 0);
+            registri.Add("src", 0);
+
+            for (int i = 0; i < velicinaMemorije; i++)
+                radnaMemorija.Add("#" + i, 0);
+
+            for (int i = 0; i < velicinaMemorije; i++)
+                dgMemorija.Rows[0].Cells[i].Value = 0;
+
+            txtLog.ScrollBars = ScrollBars.Vertical;
+            txtCode.ScrollBars = ScrollBars.Vertical;
+
+            for (int i = 0; i < velicinaMemorije; i++)
+                dgMemorija.Rows[0].Cells[i].Value = 0;
+            restartujSimulaciju();
+        }
+
+        void restartujSimulaciju()
+        {
+            txtLog.Clear();
+            brLinije = 0;
+            nizRedova = null;
+            kod = null;
+            jednaInstrukcija = null;
+            match = null;
+            for (int i = 0; i < velicinaMemorije; i++)
+            {
+                dgMemorija.Rows[0].Cells[i].Value = "0";
+                if(i < brZegistara)
+                    dgRegistri.Rows[0].Cells[i].Value = "0";
+            }
+        }
+
+        bool jeAdresa(string arg)
+        {
+            return arg.Contains("#");
+        }
+
+        bool jeKonstanta(string arg)
+        {
+            long tmp;
+            return long.TryParse(arg,out tmp);
+        }
+
+        void mov(string arg1, string arg2)
+        {
+            if (jeAdresa(arg1))
+            {
+                if (jeAdresa(arg2))
+                {
+                    radnaMemorija[arg1] = radnaMemorija[arg2];
+                    dgMemorija.Rows[0].Cells["column" + (arg1.Split('#')[1])].Value = radnaMemorija[arg2];
+                }
+                else if (jeKonstanta(arg2))
+                {
+                    radnaMemorija[arg1] = long.Parse(arg2);
+                    dgMemorija.Rows[0].Cells["column" + (arg1.Split('#')[1])].Value = long.Parse(arg2);
+                }
+                else
+                {
+                    radnaMemorija[arg1] = registri[arg2];
+                    dgMemorija.Rows[0].Cells["column" + (arg1.Split('#')[1])].Value = registri[arg2];
+                }
+            }
+            else // arg1 je registar
+            {
+                if (jeAdresa(arg2)) //arg2 je adresa
+                {
+                    registri[arg1] = radnaMemorija[arg2];
+                    dgRegistri.Rows[0].Cells[arg1].Value = radnaMemorija[arg2];
+                }
+                else if (jeKonstanta(arg2))//arg2 je konstanta
+                {
+                    registri[arg1] = long.Parse(arg2);
+                    dgRegistri.Rows[0].Cells[arg1].Value = long.Parse(arg2);
+                }
+                else///arg2 je registar
+                {
+                    registri[arg1] = registri[arg2];
+                    dgRegistri.Rows[0].Cells[arg1].Value = registri[arg2];
+                }
+            }
+        }
+
+        void add(string arg1, string arg2)
+        { 
+                mov("srd", arg1);
+                if (jeKonstanta(arg2))   //arg2 je konstanta
+                    mov("srb", (registri["srd"] + long.Parse(arg2)).ToString());
+
+                else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                    mov("srb", (registri["srd"] + radnaMemorija[arg2]).ToString());
+
+                else //arg2 je registar
+                    mov("srb", (registri["srd"] + registri[arg2]).ToString());
+        }
+
+        void sub(string arg1, string arg2)
+        {
+            mov("srd", arg1);
+            if (jeKonstanta(arg2))   //arg2 je konstanta
+                mov("srb", (registri["srd"] - long.Parse(arg2)).ToString());
+
+            else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                mov("srb", (registri["srd"] - radnaMemorija[arg2]).ToString());
+
+            else //arg2 je registar
+                mov("srb", (registri["srd"] - registri[arg2]).ToString());
+        }
+
+        void and(string arg1, string arg2)
+        {
+            mov("srd", arg1);
+            if (jeKonstanta(arg2))   //arg2 je konstanta
+                mov("srb", (registri["srd"] & long.Parse(arg2)).ToString());
+
+            else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                mov("srb", (registri["srd"] & radnaMemorija[arg2]).ToString());
+
+            else //arg2 je registar
+                mov("srb", (registri["srd"] & registri[arg2]).ToString());
+        }
+
+        void or(string arg1, string arg2)
+        {
+            mov("srd", arg1);
+            if (jeKonstanta(arg2))   //arg2 je konstanta
+                mov("srb", (registri["srd"] | long.Parse(arg2)).ToString());
+
+            else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                mov("srb", (registri["srd"] | radnaMemorija[arg2]).ToString());
+
+            else //arg2 je registar
+                mov("srb", (registri["srd"] | registri[arg2]).ToString());
+        }
+
+        void not(string arg)
+        {
+            if (jeKonstanta(arg))   //arg2 je konstanta
+                mov("srb", (~(long.Parse(arg))).ToString());//ne radi zbog - u regexu
+
+            else if (jeAdresa(arg)) //arg2 je adresa u mem
+                mov("srb", (~radnaMemorija[arg]).ToString());
+
+            else //arg2 je registar
+                mov("srb", (~registri[arg]).ToString());
+        }
+
+        void cmp(string arg1, string arg2)
+        {
+            mov("srd", arg1);
+            if (jeKonstanta(arg2))   //arg2 je konstanta
+                mov("src", (registri["srd"] - long.Parse(arg2)).ToString());
+
+            else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                mov("src", (registri["srd"] - radnaMemorija[arg2]).ToString());
+
+            else //arg2 je registar
+                mov("src", (registri["srd"] - registri[arg2]).ToString());
+        }
+
+        void gdjeSkociti(string arg)
+        {
+            int i;
+            for (i = 0; i < nizRedova.Length; i++)
+            {
+                if (arg.Equals(nizRedova[i]))
+                {
+                    brLinije = i;
+                    jmpTo = true;
+                    break;
+                }
+            }
+            if (!jmpTo)
+                txtLog.AppendText("lable '" + arg + "' does not existe!");
+        }
+
+        void je(string arg)
+        {
+            if(registri["src"] == 0)
+            {
+                gdjeSkociti(arg);
+            }
+        }
+
+        void jge(string arg)
+        {
+            if (registri["src"] > 0)
+            {
+                gdjeSkociti(arg);
+            }
+        }
+
+        void jl(string arg)
+        {
+            if (registri["src"] < 0)
+            {
+                gdjeSkociti(arg);
+            }
+        }
+
+        public void interpretiraj()
+        {
+            string instrukcija="";
+            string arg1="";
+            string arg2 = "";
+            int adresa;
+
+            if (jednaInstrukcija.Contains(",") == true)
+            {
+                string[] buffer = jednaInstrukcija.Split(',');
+                string[] tmp1 = buffer[0].Split(' ');
+                string[] tmp2 = buffer[1].Split(' ');
+                instrukcija = tmp1[0];
+                arg1 = tmp1[1];
+                arg2 = tmp2[1];
+            }
+            else
+            {
+                string[] tmp3 = jednaInstrukcija.Split(' ');
+                if (tmp3.Length == 2)
+                {
+                    instrukcija = tmp3[0];
+                    arg1 = tmp3[1];
+                }
+                else
+                {
+                    if(!jednaInstrukcija.Contains(':'))
+                        txtLog.AppendText("Komanda nema argumente");
+                }
+            }
+
+            switch (instrukcija)
+            {
+                case "MOV":
+                case "mov":
+                    mov(arg1, arg2);
+                    break;
+
+                case "add":
+                case "ADD":
+                    add(arg1, arg2);
+                    break;
+
+                case "sub":
+                case "SUB":
+                    sub(arg1, arg2);
+                    break;
+
+                case "and":
+                case "AND":
+                    and(arg1, arg2);
+                    break;
+
+                case "or":
+                case "OR":
+                    or(arg1, arg2);
+                    break;
+
+                case "not":
+                case "NOT":
+                    not(arg1);
+                    break;
+
+                case "cmp":
+                case "CMP":
+                    cmp(arg1, arg2);
+                    break;
+                case "je":
+                case "JE":
+                    je(arg1);
+                    break;
+
+                case "jge":
+                case "JGE":
+                    jge(arg1);
+                    break;
+                case "jl":
+                case "JL":
+                    jl(arg1);
+                    break;
+
+                case "":
+                    break;
+            }
+        }
+
+        public void interpreter()
+        {
+            nizRedova = kod.Trim().Split('\n');
+            string str ="";
+            foreach (string s in nizRedova)
+                str += s;
+            nizRedova = str.Split('\r');
+
+            for (brLinije = 0; brLinije < nizRedova.Length; brLinije++)
+            {
+                match = reg.Matches(nizRedova[brLinije]);
+                if (nizRedova[brLinije] != "")
+                {
+                    if (match.Count < 1)
+                    {
+                        txtLog.ForeColor = Color.Red;
+                        txtLog.AppendText("Invalid expression term: " + "'" + nizRedova[brLinije] + "'\r\n");
+                    }
+
+                    else if (match[0].Value.Equals("*"))
+                    {
+                        btnStep.Enabled = true;
+                        if(brLinije < nizRedova.Length-1)
+                            brLinije++;
+                        break;
+                    }
+                    else
+                    {
+                        jednaInstrukcija = nizRedova[brLinije];
+                        interpretiraj();
+                    }
+                }
+            }
+            if(brLinije == nizRedova.Length)
+                btnStep.Enabled = false;
+        }
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            restartujSimulaciju();
+            kod = txtCode.Text;
+            interpreter();
+        }
+
+
+        private void btnStep_Click(object sender, EventArgs e)
+        {
+            txtCode.Clear();
+            for (int i = 0; i < brLinije; i++)
+                txtCode.AppendText("" + nizRedova[i] + "\r\n");
+            txtCode.AppendText(">>" + nizRedova[brLinije]);
+            jednaInstrukcija = nizRedova[brLinije];
+            interpretiraj();
+            if (brLinije + 1 == nizRedova.Length)
+                btnStep.Enabled = false;
+            brLinije++;
+        }
+        private void btnRestart_Click(object sender, EventArgs e)
+        {
+            restartujSimulaciju();
+            txtCode.Clear();
+        }
+
+        private void btnSaveCode_Click(object sender, EventArgs e)
+        {
+            if (saveFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                saveFileDialog1.Title = "Sacuvaj kod";
+                saveFileDialog1.Filter = "Text Files (*txt)|";
+                StreamWriter sw = new StreamWriter(File.Create(saveFileDialog1.FileName));
+                sw.Write(txtCode.Text);
+                sw.Close();
+            }
+        }
+
+        private void btnOpenCode_Click(object sender, EventArgs e)
+        {
+            openFileDialog1.Filter = "Text Files (*.txt)|*.txt";
+            openFileDialog1.Title = "Otvori fajl";
+            openFileDialog1.FileName = "";
+
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                StreamReader sr = new StreamReader(File.OpenRead(openFileDialog1.FileName));
+                txtCode.Text = sr.ReadToEnd();
+                sr.Dispose();
+            }
+        }
+    }
+}

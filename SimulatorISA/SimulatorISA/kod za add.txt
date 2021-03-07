@@ -1,0 +1,40 @@
+if(jeKonstanta(arg1))   //arg 1konstanta
+            {
+                mov("srd", arg1);
+                if (jeKonstanta(arg2))   //arg2 je konstanta
+                    mov("srb", (registri["srd"] + long.Parse(arg2)).ToString());
+
+                else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                    mov("srb", (registri["srd"] + radnaMemorija[arg2]).ToString());
+
+                else //arg2 je registar
+                    mov("srb", (registri["srd"] + registri[arg2]).ToString());
+
+            }
+            else if(jeAdresa(arg1)) //arg1 adresa iz mem
+            {
+                mov("srd", arg1);
+                if (jeKonstanta(arg2))   //arg2 je konstanta
+                    mov("srb", (registri["srd"] + long.Parse(arg2)).ToString());
+
+                else if (jeAdresa(arg2)) //arg2 je adresa u mem
+                    mov("srb", (registri["srd"] + radnaMemorija[arg2]).ToString());
+
+                else //arg2 je registar
+                    mov("srb", (registri["srd"] + registri[arg2]).ToString());
+            }
+            else //arg1 je registar
+            {
+                mov("srd", arg1);
+
+                if (jeKonstanta(arg2))  //arg2 je konstanta
+                    mov("srb", (registri["srd"] + long.Parse(arg2)).ToString());
+
+                else if(jeAdresa(arg2)) //arg2 je adresa u mem
+                    mov("srb", (registri["srd"] + radnaMemorija[arg2]).ToString());
+
+                else //arg2 je registar
+                    mov("srb", (registri["srd"] + registri[arg2]).ToString());
+
+
+            }
